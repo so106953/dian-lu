@@ -1,384 +1,586 @@
-import React, { useState } from ‘react’;
-import { Calculator } from ‘lucide-react’;
+<!DOCTYPE html>
 
-export default function CircuitCalculator() {
-const [mode, setMode] = useState(‘basic’);
-const [voltage, setVoltage] = useState(’’);
-const [current, setCurrent] = useState(’’);
-const [powerFactor, setPowerFactor] = useState(’’);
-const [frequency, setFrequency] = useState(‘50’);
-const [result, setResult] = useState(null);
-
-// 串联电阻
-const [seriesResistors, setSeriesResistors] = useState([’’, ‘’]);
-
-// 并联电阻
-const [parallelResistors, setParallelResistors] = useState([’’, ‘’]);
-
-// 混合电路
-const [mixedResistors, setMixedResistors] = useState([’’, ‘’]);
-
-const calculate = () => {
-if (mode === ‘basic’) {
-const V = parseFloat(voltage);
-const I = parseFloat(current);
-const cosφ = parseFloat(powerFactor);
-const f = parseFloat(frequency);
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电路计算工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
 ```
-  if (!V || !I) {
-    alert('请输入电压和电流值');
-    return;
-  }
-  
-  // 计算阻抗 Z = V / I
-  const impedance = V / I;
-  
-  // 如果有功率因数，计算电阻和电抗
-  let resistance, reactance, inductance;
-  
-  if (cosφ && cosφ >= 0 && cosφ <= 1) {
-    // 电阻 R = Z * cosφ
-    resistance = impedance * cosφ;
-    // 电抗 X = Z * sinφ
-    reactance = impedance * Math.sin(Math.acos(cosφ));
-  } else {
-    // 如果没有功率因数，假设纯阻性负载
-    resistance = impedance;
-    reactance = 0;
-  }
-  
-  // 计算电感 L = X / (2πf)，单位转换为 mH
-  if (f && f > 0 && reactance > 0) {
-    inductance = (reactance / (2 * Math.PI * f)) * 1000; // 转换为 mH
-  } else {
-    inductance = 0;
-  }
-  
-  setResult({
-    inductance: inductance.toFixed(2),
-    resistance: resistance.toFixed(2),
-    impedance: impedance.toFixed(2),
-    reactance: reactance.toFixed(2)
-  });
-} else if (mode === 'series') {
-  const resistors = seriesResistors
-    .filter(r => r !== '')
-    .map(r => parseFloat(r))
-    .filter(r => !isNaN(r));
-  
-  if (resistors.length === 0) {
-    alert('请至少输入一个电阻值');
-    return;
-  }
-  
-  const totalResistance = resistors.reduce((sum, r) => sum + r, 0);
-  setResult({
-    totalResistance: totalResistance.toFixed(2),
-    count: resistors.length,
-    resistors: resistors
-  });
-} else if (mode === 'parallel') {
-  const resistors = parallelResistors
-    .filter(r => r !== '')
-    .map(r => parseFloat(r))
-    .filter(r => !isNaN(r) && r > 0);
-  
-  if (resistors.length === 0) {
-    alert('请至少输入一个电阻值');
-    return;
-  }
-  
-  const totalResistance = 1 / resistors.reduce((sum, r) => sum + (1/r), 0);
-  setResult({
-    totalResistance: totalResistance.toFixed(2),
-    count: resistors.length,
-    resistors: resistors
-  });
-} else if (mode === 'mixed') {
-  const resistors = mixedResistors
-    .filter(r => r !== '')
-    .map(r => parseFloat(r))
-    .filter(r => !isNaN(r) && r > 0);
-  
-  if (resistors.length === 0) {
-    alert('请至少输入电阻值');
-    return;
-  }
-  
-  // 简单示例：前一半串联，后一半并联
-  const half = Math.floor(resistors.length / 2);
-  const series = resistors.slice(0, half);
-  const parallel = resistors.slice(half);
-  
-  const seriesTotal = series.reduce((sum, r) => sum + r, 0);
-  const parallelTotal = parallel.length > 0 
-    ? 1 / parallel.reduce((sum, r) => sum + (1/r), 0)
-    : 0;
-  
-  const totalResistance = seriesTotal + parallelTotal;
-  setResult({
-    totalResistance: totalResistance.toFixed(2),
-    seriesTotal: seriesTotal.toFixed(2),
-    parallelTotal: parallelTotal.toFixed(2)
-  });
-}
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+        min-height: 100vh;
+        padding: 8px;
+    }
+
+    @media (min-width: 640px) {
+        body {
+            padding: 16px;
+        }
+    }
+
+    @media (min-width: 768px) {
+        body {
+            padding: 24px;
+        }
+    }
+
+    .container {
+        max-width: 672px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    @media (min-width: 640px) {
+        .container {
+            border-radius: 16px;
+        }
+    }
+
+    .header {
+        background: linear-gradient(to right, #10b981, #059669);
+        padding: 16px;
+        color: white;
+    }
+
+    @media (min-width: 640px) {
+        .header {
+            padding: 24px;
+        }
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    @media (min-width: 640px) {
+        .header-content {
+            gap: 12px;
+        }
+    }
+
+    .header h1 {
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    @media (min-width: 640px) {
+        .header h1 {
+            font-size: 24px;
+        }
+    }
+
+    .content {
+        padding: 12px;
+    }
+
+    @media (min-width: 640px) {
+        .content {
+            padding: 24px;
+        }
+    }
+
+    .info-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+    }
+
+    @media (min-width: 640px) {
+        .info-box {
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+    }
+
+    .info-box h2 {
+        font-weight: bold;
+        color: #166534;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    @media (min-width: 640px) {
+        .info-box h2 {
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+    }
+
+    .info-box p {
+        color: #15803d;
+        font-size: 12px;
+        margin: 4px 0;
+    }
+
+    @media (min-width: 640px) {
+        .info-box p {
+            font-size: 14px;
+            margin: 8px 0;
+        }
+    }
+
+    .mode-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    @media (min-width: 640px) {
+        .mode-buttons {
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+    }
+
+    .mode-btn {
+        padding: 8px 8px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 14px;
+    }
+
+    @media (min-width: 640px) {
+        .mode-btn {
+            padding: 12px 16px;
+            font-size: 16px;
+        }
+    }
+
+    .mode-btn.active {
+        background: #10b981;
+        color: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .mode-btn:not(.active) {
+        background: #e5e7eb;
+        color: #374151;
+    }
+
+    .mode-btn:not(.active):hover {
+        background: #d1d5db;
+    }
+
+    .input-group {
+        margin-bottom: 12px;
+    }
+
+    @media (min-width: 640px) {
+        .input-group {
+            margin-bottom: 16px;
+        }
+    }
+
+    .input-group label {
+        display: block;
+        color: #374151;
+        font-weight: 500;
+        margin-bottom: 4px;
+        font-size: 14px;
+    }
+
+    @media (min-width: 640px) {
+        .input-group label {
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+    }
+
+    .input-group input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    @media (min-width: 640px) {
+        .input-group input {
+            padding: 12px 16px;
+            font-size: 16px;
+        }
+    }
+
+    .input-group input:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    .btn-calculate {
+        width: 100%;
+        padding: 12px;
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-top: 16px;
+    }
+
+    @media (min-width: 640px) {
+        .btn-calculate {
+            padding: 16px;
+            font-size: 18px;
+            margin-top: 24px;
+        }
+    }
+
+    .btn-calculate:hover {
+        background: #059669;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-add {
+        width: 100%;
+        padding: 8px 16px;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        cursor: pointer;
+        margin-top: 8px;
+    }
+
+    @media (min-width: 640px) {
+        .btn-add {
+            font-size: 16px;
+        }
+    }
+
+    .btn-add:hover {
+        background: #2563eb;
+    }
+
+    .result-box {
+        margin-top: 16px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 16px;
+    }
+
+    @media (min-width: 640px) {
+        .result-box {
+            margin-top: 24px;
+            padding: 24px;
+        }
+    }
+
+    .result-box h3 {
+        font-weight: bold;
+        color: #1e40af;
+        margin-bottom: 12px;
+        font-size: 16px;
+    }
+
+    @media (min-width: 640px) {
+        .result-box h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+    }
+
+    .result-box p {
+        color: #1e40af;
+        margin: 8px 0;
+        font-size: 14px;
+    }
+
+    @media (min-width: 640px) {
+        .result-box p {
+            font-size: 18px;
+            margin: 12px 0;
+        }
+    }
+
+    .result-box span {
+        font-weight: 600;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .resistor-input {
+        margin-bottom: 8px;
+    }
+
+    .hint {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 4px;
+    }
+
+    @media (min-width: 640px) {
+        .hint {
+            font-size: 14px;
+        }
+    }
+</style>
 ```
 
-};
-
-const addResistor = (type) => {
-if (type === ‘series’) {
-setSeriesResistors([…seriesResistors, ‘’]);
-} else if (type === ‘parallel’) {
-setParallelResistors([…parallelResistors, ‘’]);
-} else if (type === ‘mixed’) {
-setMixedResistors([…mixedResistors, ‘’]);
-}
-};
-
-const updateResistor = (type, index, value) => {
-if (type === ‘series’) {
-const newResistors = […seriesResistors];
-newResistors[index] = value;
-setSeriesResistors(newResistors);
-} else if (type === ‘parallel’) {
-const newResistors = […parallelResistors];
-newResistors[index] = value;
-setParallelResistors(newResistors);
-} else if (type === ‘mixed’) {
-const newResistors = […mixedResistors];
-newResistors[index] = value;
-setMixedResistors(newResistors);
-}
-};
-
-return (
-<div className="min-h-screen bg-gray-900 p-2 sm:p-4 md:p-6">
-<div className="max-w-2xl mx-auto bg-white rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden">
-{/* 标题 */}
-<div className="bg-gradient-to-r from-green-500 to-green-600 p-4 sm:p-6">
-<div className="flex items-center gap-2 sm:gap-3">
-<Calculator className=“text-white flex-shrink-0” size={window.innerWidth < 640 ? 24 : 32} />
-<h1 className="text-lg sm:text-2xl font-bold text-white">电路计算工具</h1>
-</div>
-</div>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                    <path d="M8 8h8M8 12h8M8 16h4"/>
+                </svg>
+                <h1>电路计算工具</h1>
+            </div>
+        </div>
 
 ```
-    <div className="p-3 sm:p-6">
-      {/* 计算模式说明 */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-        <h2 className="font-bold text-green-800 mb-2 sm:mb-3 text-sm sm:text-base">计算模式：</h2>
-        <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-green-700">
-          <p>1. 基本计算：已知电压(V)、电流(I)、功率因数(cosφ)、频率(f)</p>
-          <p>2. 串联计算：计算多个电阻串联后的总阻值</p>
-          <p>3. 并联计算：计算多个电阻并联后的总阻值</p>
-          <p>4. 混合计算：计算串并联混合电路的总阻值</p>
+    <div class="content">
+        <div class="info-box">
+            <h2>计算模式：</h2>
+            <p>1. 基本计算：已知电压(V)、电流(I)、功率因数(cosφ)、频率(f)</p>
+            <p>2. 串联计算：计算多个电阻串联后的总阻值</p>
+            <p>3. 并联计算：计算多个电阻并联后的总阻值</p>
+            <p>4. 混合计算：计算串并联混合电路的总阻值</p>
         </div>
-      </div>
 
-      {/* 模式选择按钮 */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6">
-        <button
-          onClick={() => { setMode('basic'); setResult(null); }}
-          className={`py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-medium transition-all text-sm sm:text-base ${
-            mode === 'basic' 
-              ? 'bg-green-500 text-white shadow-lg' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          基本计算
-        </button>
-        <button
-          onClick={() => { setMode('series'); setResult(null); }}
-          className={`py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-medium transition-all text-sm sm:text-base ${
-            mode === 'series' 
-              ? 'bg-green-500 text-white shadow-lg' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          串联计算
-        </button>
-        <button
-          onClick={() => { setMode('parallel'); setResult(null); }}
-          className={`py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-medium transition-all text-sm sm:text-base ${
-            mode === 'parallel' 
-              ? 'bg-green-500 text-white shadow-lg' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          并联计算
-        </button>
-        <button
-          onClick={() => { setMode('mixed'); setResult(null); }}
-          className={`py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-medium transition-all text-sm sm:text-base ${
-            mode === 'mixed' 
-              ? 'bg-green-500 text-white shadow-lg' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          混合计算
-        </button>
-      </div>
-
-      {/* 基本计算输入 */}
-      {mode === 'basic' && (
-        <div className="space-y-3 sm:space-y-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 sm:mb-2 text-sm sm:text-base">电压 (V):</label>
-            <input
-              type="number"
-              value={voltage}
-              onChange={(e) => setVoltage(e.target.value)}
-              placeholder="输入电压值"
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 sm:mb-2 text-sm sm:text-base">电流 (A):</label>
-            <input
-              type="number"
-              value={current}
-              onChange={(e) => setCurrent(e.target.value)}
-              placeholder="输入电流值"
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 sm:mb-2 text-sm sm:text-base">功率因数 (cosφ):</label>
-            <input
-              type="number"
-              step="0.01"
-              value={powerFactor}
-              onChange={(e) => setPowerFactor(e.target.value)}
-              placeholder="输入功率因数"
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 sm:mb-2 text-sm sm:text-base">频率 (Hz):</label>
-            <input
-              type="number"
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
-            />
-          </div>
+        <div class="mode-buttons">
+            <button class="mode-btn active" onclick="setMode('basic')">基本计算</button>
+            <button class="mode-btn" onclick="setMode('series')">串联计算</button>
+            <button class="mode-btn" onclick="setMode('parallel')">并联计算</button>
+            <button class="mode-btn" onclick="setMode('mixed')">混合计算</button>
         </div>
-      )}
 
-      {/* 串联计算输入 */}
-      {mode === 'series' && (
-        <div className="space-y-3 sm:space-y-4">
-          <label className="block text-gray-700 font-medium mb-1 sm:mb-2 text-sm sm:text-base">电阻值 (Ω):</label>
-          {seriesResistors.map((resistor, index) => (
-            <input
-              key={index}
-              type="number"
-              value={resistor}
-              onChange={(e) => updateResistor('series', index, e.target.value)}
-              placeholder={`电阻 ${index + 1}`}
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent mb-2 text-sm sm:text-base"
-            />
-          ))}
-          <button
-            onClick={() => addResistor('series')}
-            className="w-full py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm sm:text-base"
-          >
-            + 添加电阻
-          </button>
-        </div>
-      )}
-
-      {/* 并联计算输入 */}
-      {mode === 'parallel' && (
-        <div className="space-y-3 sm:space-y-4">
-          <label className="block text-gray-700 font-medium mb-1 sm:mb-2 text-sm sm:text-base">电阻值 (Ω):</label>
-          {parallelResistors.map((resistor, index) => (
-            <input
-              key={index}
-              type="number"
-              value={resistor}
-              onChange={(e) => updateResistor('parallel', index, e.target.value)}
-              placeholder={`电阻 ${index + 1}`}
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent mb-2 text-sm sm:text-base"
-            />
-          ))}
-          <button
-            onClick={() => addResistor('parallel')}
-            className="w-full py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm sm:text-base"
-          >
-            + 添加电阻
-          </button>
-        </div>
-      )}
-
-      {/* 混合计算输入 */}
-      {mode === 'mixed' && (
-        <div className="space-y-3 sm:space-y-4">
-          <label className="block text-gray-700 font-medium mb-1 sm:mb-2 text-sm sm:text-base">电阻值 (Ω):</label>
-          <p className="text-xs sm:text-sm text-gray-600 mb-2">提示：前半部分串联，后半部分并联</p>
-          {mixedResistors.map((resistor, index) => (
-            <input
-              key={index}
-              type="number"
-              value={resistor}
-              onChange={(e) => updateResistor('mixed', index, e.target.value)}
-              placeholder={`电阻 ${index + 1}`}
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent mb-2 text-sm sm:text-base"
-            />
-          ))}
-          <button
-            onClick={() => addResistor('mixed')}
-            className="w-full py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm sm:text-base"
-          >
-            + 添加电阻
-          </button>
-        </div>
-      )}
-
-      {/* 计算按钮 */}
-      <button
-        onClick={calculate}
-        className="w-full mt-4 sm:mt-6 py-3 sm:py-4 bg-green-500 text-white rounded-lg font-bold text-base sm:text-lg hover:bg-green-600 transition-all shadow-lg hover:shadow-xl"
-      >
-        计算
-      </button>
-
-      {/* 结果显示 */}
-      {result && (
-        <div className="mt-4 sm:mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 sm:p-6">
-          <h3 className="font-bold text-blue-800 mb-3 sm:mb-4 text-base sm:text-lg">计算结果：</h3>
-          {mode === 'basic' && (
-            <div className="space-y-2 sm:space-y-3 text-blue-700">
-              <p className="text-sm sm:text-lg"><span className="font-semibold">电感 L:</span> {result.inductance} mH</p>
-              <p className="text-sm sm:text-lg"><span className="font-semibold">电阻 R:</span> {result.resistance} Ω</p>
-              <p className="text-sm sm:text-lg"><span className="font-semibold">阻抗 Z:</span> {result.impedance} Ω</p>
-              <p className="text-sm sm:text-lg"><span className="font-semibold">电抗 X:</span> {result.reactance} Ω</p>
+        <!-- 基本计算 -->
+        <div id="basic-mode">
+            <div class="input-group">
+                <label>电压 (V):</label>
+                <input type="number" id="voltage" placeholder="输入电压值">
             </div>
-          )}
-          {(mode === 'series' || mode === 'parallel') && (
-            <div className="space-y-2 text-blue-700 text-sm sm:text-base">
-              <p>总电阻: {result.totalResistance} Ω</p>
-              <p>电阻数量: {result.count} 个</p>
+            <div class="input-group">
+                <label>电流 (A):</label>
+                <input type="number" id="current" placeholder="输入电流值">
             </div>
-          )}
-          {mode === 'mixed' && (
-            <div className="space-y-2 text-blue-700 text-sm sm:text-base">
-              <p>总电阻: {result.totalResistance} Ω</p>
-              <p>串联部分: {result.seriesTotal} Ω</p>
-              <p>并联部分: {result.parallelTotal} Ω</p>
+            <div class="input-group">
+                <label>功率因数 (cosφ):</label>
+                <input type="number" id="powerFactor" step="0.01" placeholder="输入功率因数">
             </div>
-          )}
+            <div class="input-group">
+                <label>频率 (Hz):</label>
+                <input type="number" id="frequency" value="50">
+            </div>
         </div>
-      )}
+
+        <!-- 串联计算 -->
+        <div id="series-mode" class="hidden">
+            <div class="input-group">
+                <label>电阻值 (Ω):</label>
+                <div id="series-inputs">
+                    <input type="number" class="resistor-input" placeholder="电阻 1">
+                    <input type="number" class="resistor-input" placeholder="电阻 2">
+                </div>
+                <button class="btn-add" onclick="addResistor('series')">+ 添加电阻</button>
+            </div>
+        </div>
+
+        <!-- 并联计算 -->
+        <div id="parallel-mode" class="hidden">
+            <div class="input-group">
+                <label>电阻值 (Ω):</label>
+                <div id="parallel-inputs">
+                    <input type="number" class="resistor-input" placeholder="电阻 1">
+                    <input type="number" class="resistor-input" placeholder="电阻 2">
+                </div>
+                <button class="btn-add" onclick="addResistor('parallel')">+ 添加电阻</button>
+            </div>
+        </div>
+
+        <!-- 混合计算 -->
+        <div id="mixed-mode" class="hidden">
+            <div class="input-group">
+                <label>电阻值 (Ω):</label>
+                <p class="hint">提示：前半部分串联，后半部分并联</p>
+                <div id="mixed-inputs">
+                    <input type="number" class="resistor-input" placeholder="电阻 1">
+                    <input type="number" class="resistor-input" placeholder="电阻 2">
+                </div>
+                <button class="btn-add" onclick="addResistor('mixed')">+ 添加电阻</button>
+            </div>
+        </div>
+
+        <button class="btn-calculate" onclick="calculate()">计算</button>
+
+        <div id="result" class="result-box hidden">
+            <h3>计算结果：</h3>
+            <div id="result-content"></div>
+        </div>
     </div>
-  </div>
 </div>
+
+<script>
+    let currentMode = 'basic';
+
+    function setMode(mode) {
+        currentMode = mode;
+        
+        // 更新按钮状态
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // 隐藏所有模式
+        document.getElementById('basic-mode').classList.add('hidden');
+        document.getElementById('series-mode').classList.add('hidden');
+        document.getElementById('parallel-mode').classList.add('hidden');
+        document.getElementById('mixed-mode').classList.add('hidden');
+
+        // 显示当前模式
+        document.getElementById(mode + '-mode').classList.remove('hidden');
+
+        // 隐藏结果
+        document.getElementById('result').classList.add('hidden');
+    }
+
+    function addResistor(type) {
+        const container = document.getElementById(type + '-inputs');
+        const count = container.children.length + 1;
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'resistor-input';
+        input.placeholder = '电阻 ' + count;
+        container.appendChild(input);
+    }
+
+    function calculate() {
+        const resultBox = document.getElementById('result');
+        const resultContent = document.getElementById('result-content');
+        
+        if (currentMode === 'basic') {
+            const V = parseFloat(document.getElementById('voltage').value);
+            const I = parseFloat(document.getElementById('current').value);
+            const cosφ = parseFloat(document.getElementById('powerFactor').value);
+            const f = parseFloat(document.getElementById('frequency').value);
+
+            if (!V || !I) {
+                alert('请输入电压和电流值');
+                return;
+            }
+
+            const impedance = V / I;
+            let resistance, reactance, inductance;
+
+            if (cosφ && cosφ >= 0 && cosφ <= 1) {
+                resistance = impedance * cosφ;
+                reactance = impedance * Math.sin(Math.acos(cosφ));
+            } else {
+                resistance = impedance;
+                reactance = 0;
+            }
+
+            if (f && f > 0 && reactance > 0) {
+                inductance = (reactance / (2 * Math.PI * f)) * 1000;
+            } else {
+                inductance = 0;
+            }
+
+            resultContent.innerHTML = `
+                <p><span>电感 L:</span> ${inductance.toFixed(2)} mH</p>
+                <p><span>电阻 R:</span> ${resistance.toFixed(2)} Ω</p>
+                <p><span>阻抗 Z:</span> ${impedance.toFixed(2)} Ω</p>
+                <p><span>电抗 X:</span> ${reactance.toFixed(2)} Ω</p>
+            `;
+            resultBox.classList.remove('hidden');
+
+        } else if (currentMode === 'series') {
+            const inputs = document.querySelectorAll('#series-inputs input');
+            const resistors = Array.from(inputs)
+                .map(input => parseFloat(input.value))
+                .filter(val => !isNaN(val));
+
+            if (resistors.length === 0) {
+                alert('请至少输入一个电阻值');
+                return;
+            }
+
+            const total = resistors.reduce((sum, r) => sum + r, 0);
+            resultContent.innerHTML = `
+                <p><span>总电阻:</span> ${total.toFixed(2)} Ω</p>
+                <p><span>电阻数量:</span> ${resistors.length} 个</p>
+            `;
+            resultBox.classList.remove('hidden');
+
+        } else if (currentMode === 'parallel') {
+            const inputs = document.querySelectorAll('#parallel-inputs input');
+            const resistors = Array.from(inputs)
+                .map(input => parseFloat(input.value))
+                .filter(val => !isNaN(val) && val > 0);
+
+            if (resistors.length === 0) {
+                alert('请至少输入一个电阻值');
+                return;
+            }
+
+            const total = 1 / resistors.reduce((sum, r) => sum + (1/r), 0);
+            resultContent.innerHTML = `
+                <p><span>总电阻:</span> ${total.toFixed(2)} Ω</p>
+                <p><span>电阻数量:</span> ${resistors.length} 个</p>
+            `;
+            resultBox.classList.remove('hidden');
+
+        } else if (currentMode === 'mixed') {
+            const inputs = document.querySelectorAll('#mixed-inputs input');
+            const resistors = Array.from(inputs)
+                .map(input => parseFloat(input.value))
+                .filter(val => !isNaN(val) && val > 0);
+
+            if (resistors.length === 0) {
+                alert('请至少输入电阻值');
+                return;
+            }
+
+            const half = Math.floor(resistors.length / 2);
+            const series = resistors.slice(0, half);
+            const parallel = resistors.slice(half);
+
+            const seriesTotal = series.reduce((sum, r) => sum + r, 0);
+            const parallelTotal = parallel.length > 0 
+                ? 1 / parallel.reduce((sum, r) => sum + (1/r), 0)
+                : 0;
+
+            const total = seriesTotal + parallelTotal;
+            resultContent.innerHTML = `
+                <p><span>总电阻:</span> ${total.toFixed(2)} Ω</p>
+                <p><span>串联部分:</span> ${seriesTotal.toFixed(2)} Ω</p>
+                <p><span>并联部分:</span> ${parallelTotal.toFixed(2)} Ω</p>
+            `;
+            resultBox.classList.remove('hidden');
+        }
+    }
+</script>
 ```
 
-);
-}
+</body>
+</html>
